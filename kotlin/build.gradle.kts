@@ -1,5 +1,4 @@
 group = "com.looker.sdk"
-defaultTasks = mutableListOf("jar")
 
 val kotlinVersion = providers.gradleProperty("kotlinVersion").get()
 val googleHttpVersion = providers.gradleProperty("googleHttpVersion").get()
@@ -7,7 +6,8 @@ val googleHttpVersion = providers.gradleProperty("googleHttpVersion").get()
 plugins {
     kotlin("jvm")
     id("com.diffplug.spotless")
-    id("com.github.johnrengelman.shadow")
+    id("com.gradleup.shadow")
+    id("maven-publish")
 }
 
 sourceSets {
@@ -21,6 +21,42 @@ sourceSets {
             setSrcDirs(listOf("src/test"))
         }
     }
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("looker-kotlin-sdk") {
+            groupId = "com.looker.sdk"
+            artifactId = "looker-kotlin-sdk"
+            version = "1.0.0"
+            from(components["java"])
+            artifact(tasks["shadowJar"])
+        }
+    }
+    repositories {
+        maven {
+            name = "maven"
+            url = uri(System.getenv("MAVEN_REPO_URL") as String)
+            credentials {
+                username = project.findProperty("mavenUser") as String
+                password = project.findProperty("mavenPassword") as String
+            }
+        }
+    }
+}
+
+tasks.shadowJar {
+    enableAutoRelocation = true
+    relocationPrefix = "lookersdk"
+    archiveClassifier = ""
+}
+
+tasks.jar {
+    enabled = false
+}
+
+tasks.withType<GenerateModuleMetadata> {
+    enabled = false
 }
 
 repositories {
